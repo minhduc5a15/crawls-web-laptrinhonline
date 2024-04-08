@@ -17,7 +17,7 @@ Làm theo cách bước sau để lấy hết lấy hết AC Code trên laptrinh
    ```
 3. Tải các package cần thiết.
    ```bash
-   pip install selenium termcolor 
+   pip install selenium termcolor unidecode 
    ```
 4. Chạy chương trình.
    ```bash
