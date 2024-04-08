@@ -17,6 +17,14 @@ def format_name(s: str) -> str:
         res = res.replace(ch, "")
     return res.lower()
 
+def write_to_file(directory: str, filename: str, filetype: str, data: str):
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    filepath = os.path.join(directory, filename + '.' + filetype)
+    with open(filepath, 'w') as file:
+        file.write(data)
+    file.close()
+
 class Solution:
     def __init__(self, problem: str, id_submission: str, content: str, url: str, language: str):
         self.name = problem
@@ -25,14 +33,6 @@ class Solution:
         self.content = content
         self.url = url
         self.language = language
-
-def write_to_file(directory: str, filename: str, filetype: str, data: str):
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-    filepath = os.path.join(directory, filename + '.' + filetype)
-    with open(filepath, 'w') as file:
-        file.write(data)
-    file.close()
 
 class ProblemSolutionScraper:
     def __init__(self, username: str, password: str):
@@ -96,7 +96,11 @@ class ProblemSolutionScraper:
                 if problem not in self.solutions:
                     id_submission = row.get_attribute("id")
                     url = current.get_attribute("href")
-                    language = row.find_element(By.CSS_SELECTOR, ".sub-result > .state .language").text
+                    try:
+                        WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, ".sub-result > .state .language")))
+                        language = row.find_element(By.CSS_SELECTOR, ".sub-result > .state .language").text
+                    except Exception as e:
+                        return print(f"An error occurred: {e}")
                     raw = f"http://laptrinhonline.club/src/{id_submission}/raw"
                     self.driver.get(raw)
                     self.wait(raw)
@@ -112,7 +116,7 @@ class ProblemSolutionScraper:
                         total_data += len(current_solution.content)
                         print(f"ghi file {termcolor.colored(current_file, "cyan")} thành công")
 
-        print(f"ghi thành công {termcolor.colored(str(written_files) + " files", "green")} và {termcolor.colored(str(total_data) + " ký tự", "green")}")
+        print(f"\nghi thành công {termcolor.colored(str(written_files) + " files", "green")} và {termcolor.colored(str(total_data) + " ký tự", "green")}")
 
     # test result
     def print_solutions(self):
