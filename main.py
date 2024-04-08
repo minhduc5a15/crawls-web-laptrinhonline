@@ -1,4 +1,6 @@
 from selenium import webdriver
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from collections import defaultdict
@@ -68,7 +70,7 @@ class ProblemSolutionScraper:
         pages = pagination.find_elements(By.TAG_NAME, "li")
         max_page = 0
         for page in pages:
-            if page.text.isdigit():
+            if page.text[0].isdigit():
                 max_page = max(max_page, int(page.text))
         return max_page
 
@@ -85,7 +87,11 @@ class ProblemSolutionScraper:
             time.sleep(0.5)
 
             for row in rows:
-                current = row.find_element(By.CSS_SELECTOR, ".sub-main > .sub-info > .name > a")
+                try:
+                    WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, ".sub-main > .sub-info > .name > a")))
+                    current = row.find_element(By.CSS_SELECTOR, ".sub-main > .sub-info > .name > a")
+                except Exception as e:
+                    return print(f"An error occurred: {e}")
                 problem = current.text
                 if problem not in self.solutions:
                     id_submission = row.get_attribute("id")
@@ -105,6 +111,7 @@ class ProblemSolutionScraper:
                         written_files += 1
                         total_data += len(current_solution.content)
                         print(f"ghi file {termcolor.colored(current_file, "cyan")} thành công")
+
         print(f"ghi thành công {termcolor.colored(str(written_files) + " files", "green")} và {termcolor.colored(str(total_data) + " ký tự", "green")}")
 
     # test result
@@ -115,6 +122,7 @@ class ProblemSolutionScraper:
             print("---------------------------------")
 
     def quit(self):
+        print("Đang thoát chương trình...")
         time.sleep(1)
         self.driver.quit()
 
