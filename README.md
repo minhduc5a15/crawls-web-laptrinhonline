@@ -5,7 +5,7 @@
 * 🐍Trước khi chạy code, máy phải có Python 3.x trở lên.
 * 💻 Chạy trên windows, mac hoặc linux đều được.
 
-Làm theo cách bước sau để lấy hết lấy hết AC Code trên laptrinhonline.
+Làm theo cách bước sau để lấy hết AC Code trên laptrinhonline.
 
 1. Clone the repository:
     ```bash
