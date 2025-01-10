@@ -1,13 +1,20 @@
+from getpass import getpass
+
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 from collections import defaultdict
 import time, os, unidecode, termcolor
 
-LOGIN_URL = "http://laptrinhonline.club/accounts/login/?next=/problems"
-FILE_TYPE = {"RUST": "rs", "CPP17": "cpp", "CPP14": "cpp", "PY3": "py", "C11": "c", "C": "c"}
+BASE_URL = "https://laptrinhonline.club"
+LOGIN_URL = f"{BASE_URL}/accounts/login/?next=/problems"
+FILE_TYPE = {"RUST": "rs", "CPP17": "cpp", "CPP14": "cpp", "PY3": "py", "C11": "c", "C": "c", "JAVA11": "java", "JAVA8": "java", "GO": "go", "JAVA10": "java",
+             "PYPY3": "py"}
+
 
 def format_name(s: str) -> str:
     no_accents_string = unidecode.unidecode(s)
@@ -17,6 +24,7 @@ def format_name(s: str) -> str:
         res = res.replace(ch, "")
     return res.lower()
 
+
 def write_to_file(directory: str, filename: str, filetype: str, data: str):
     if not os.path.exists(directory):
         os.makedirs(directory)
@@ -24,6 +32,7 @@ def write_to_file(directory: str, filename: str, filetype: str, data: str):
     with open(filepath, 'w') as file:
         file.write(data)
     file.close()
+
 
 class Solution:
     def __init__(self, problem: str, id_submission: str, content: str, url: str, language: str):
@@ -34,13 +43,14 @@ class Solution:
         self.url = url
         self.language = language
 
+
 class ProblemSolutionScraper:
     def __init__(self, username: str, password: str):
-        self.driver = webdriver.Chrome()
+        self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
         self.login_url = LOGIN_URL
         self.username = username
         self.password = password
-        self.submission = f"http://laptrinhonline.club/submissions/user/{self.username}/?status=AC"
+        self.submission = f"{BASE_URL}/submissions/user/{self.username}/?status=AC"
         self.solutions = defaultdict()
         self.path = os.getcwd()
 
@@ -57,8 +67,9 @@ class ProblemSolutionScraper:
         password_field = self.driver.find_element("id", "id_password")
         password_field.send_keys(self.password)
         password_field.send_keys(Keys.ENTER)
-        if self.driver.current_url != "http://laptrinhonline.club/problems/":
+        if self.driver.current_url != f"{BASE_URL}/problems/":
             print("Đăng nhập thất bại")
+            self.quit()
         else:
             print("Đăng nhập thành công")
         time.sleep(1)
@@ -79,7 +90,7 @@ class ProblemSolutionScraper:
         written_files, total_data = 0, 0
         max_page = self.get_max_page()
         for current_page in range(1, max_page + 1):
-            page = f"http://laptrinhonline.club/submissions/user/{self.username}/{'' if current_page == 1 else current_page}?status=AC"
+            page = f"{BASE_URL}/submissions/user/{self.username}/{'' if current_page == 1 else current_page}?status=AC"
             self.driver.get(page)
             self.wait(page)
             table = self.driver.find_element(By.ID, "submissions-table")
@@ -88,7 +99,8 @@ class ProblemSolutionScraper:
 
             for row in rows:
                 try:
-                    WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, ".sub-main > .sub-info > .name > a")))
+                    WebDriverWait(self.driver, 10).until(
+                        EC.presence_of_element_located((By.CSS_SELECTOR, ".sub-main > .sub-info > .name > a")))
                     current = row.find_element(By.CSS_SELECTOR, ".sub-main > .sub-info > .name > a")
                 except Exception as e:
                     return print(f"An error occurred: {e}")
@@ -97,26 +109,39 @@ class ProblemSolutionScraper:
                     id_submission = row.get_attribute("id")
                     url = current.get_attribute("href")
                     try:
-                        WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, ".sub-result > .state .language")))
+                        WebDriverWait(self.driver, 10).until(
+                            EC.presence_of_element_located((By.CSS_SELECTOR, ".sub-result > .state .language")))
                         language = row.find_element(By.CSS_SELECTOR, ".sub-result > .state .language").text
                     except Exception as e:
                         return print(f"An error occurred: {e}")
-                    raw = f"http://laptrinhonline.club/src/{id_submission}/raw"
+                    raw = f"{BASE_URL}/src/{id_submission}/raw"
                     self.driver.get(raw)
                     self.wait(raw)
                     content = self.driver.find_element(By.TAG_NAME, "pre").text
                     self.driver.back()
                     self.wait(page)
-                    current_solution = Solution(problem=problem, id_submission=id_submission, content=content, url=url, language=language)
+                    current_solution = Solution(problem=problem, id_submission=id_submission, content=content, url=url,
+                                                language=language)
                     self.solutions[problem] = current_solution
                     if current_solution.language in FILE_TYPE:
-                        write_to_file(self.path + "\\" + "src", current_solution.problem, FILE_TYPE.get(current_solution.language), current_solution.content)
+                        write_to_file(self.path + "/" + "src", current_solution.problem, FILE_TYPE.get(current_solution.language), current_solution.content)
                         current_file = f"{current_solution.problem}.{FILE_TYPE.get(current_solution.language)}"
                         written_files += 1
                         total_data += len(current_solution.content)
                         print(f"ghi file {termcolor.colored(current_file, "cyan")} thành công")
 
         print(f"\nghi thành công {termcolor.colored(str(written_files) + " files", "green")} và {termcolor.colored(str(total_data) + " ký tự", "green")}")
+
+        languages = {}
+        for key, solution in self.solutions.items():
+            if solution.language in languages:
+                languages[solution.language] += 1
+            else:
+                languages[solution.language] = 1
+
+        for key, value in languages.items():
+            print(f"{key}: {value} bài")
+
 
     # test result
     def print_solutions(self):
@@ -130,8 +155,11 @@ class ProblemSolutionScraper:
         time.sleep(1)
         self.driver.quit()
 
+
 if __name__ == "__main__":
-    user = ProblemSolutionScraper(username=input("Tên người dùng: "), password=input("mật khẩu: "))
+    username = input("tên người dùng: ")
+    password = getpass("mật khẩu: ")
+    user = ProblemSolutionScraper(username=username, password=password)
     user.login()
     user.get_code()
     # user.print_solutions()
