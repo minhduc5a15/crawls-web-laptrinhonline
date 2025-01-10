@@ -13,7 +13,13 @@ import time, os, unidecode, termcolor
 BASE_URL = "https://laptrinhonline.club"
 LOGIN_URL = f"{BASE_URL}/accounts/login/?next=/problems"
 FILE_TYPE = {"RUST": "rs", "CPP17": "cpp", "CPP14": "cpp", "PY3": "py", "C11": "c", "C": "c", "JAVA11": "java", "JAVA8": "java", "GO": "go", "JAVA10": "java",
-             "PYPY3": "py"}
+             "PYPY3": "py", "DART": "dart", "Kotlin": "kt", "Pascal": "pas", "MONOCS": "cs", "SCALA": "scala", "HASKELL": "hs", "PHP": "php", "RUBY2": "rb",
+             "SWIFT": "swift", "ZIG": "zig"}
+
+options = webdriver.ChromeOptions()
+options.add_argument('headless')
+options.add_argument('window-size=1920x1080')
+options.add_argument("disable-gpu")
 
 
 def format_name(s: str) -> str:
@@ -46,7 +52,7 @@ class Solution:
 
 class ProblemSolutionScraper:
     def __init__(self, username: str, password: str):
-        self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
+        self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
         self.login_url = LOGIN_URL
         self.username = username
         self.password = password
@@ -86,6 +92,7 @@ class ProblemSolutionScraper:
         return max_page
 
     def get_code(self):
+        start_time = time.time()
         self.driver.get(self.submission)
         written_files, total_data = 0, 0
         max_page = self.get_max_page()
@@ -129,8 +136,10 @@ class ProblemSolutionScraper:
                         written_files += 1
                         total_data += len(current_solution.content)
                         print(f"ghi file {termcolor.colored(current_file, "cyan")} thành công")
-
-        print(f"\nghi thành công {termcolor.colored(str(written_files) + " files", "green")} và {termcolor.colored(str(total_data) + " ký tự", "green")}")
+        end_time = time.time()
+        elapsed_time = f"{end_time - start_time:.2f} giây"
+        print(
+            f"\nghi thành công {termcolor.colored(str(written_files) + " files", "green")} và {termcolor.colored(str(total_data) + " ký tự", "green")} trong {termcolor.colored(elapsed_time, 'green')}")
 
         languages = {}
         for key, solution in self.solutions.items():
@@ -141,7 +150,6 @@ class ProblemSolutionScraper:
 
         for key, value in languages.items():
             print(f"{key}: {value} bài")
-
 
     # test result
     def print_solutions(self):
